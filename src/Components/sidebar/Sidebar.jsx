@@ -1,5 +1,8 @@
+import axios from "axios";
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { NavLink, useNavigate } from "react-router-dom";
+import { removeUser } from "../utils/userSlice";
 
 const navItems = [
   {
@@ -127,6 +130,22 @@ const Sidebar = ({
   mobileOpen = false,
   onClose = () => {},
 }) => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:3000/sadmin/logout", 
+        {},
+        {
+        withCredentials: true,
+      });
+      dispatch(removeUser());
+      navigate("/signin");
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   return (
     <aside>
       {/* Desktop sidebar */}
@@ -174,6 +193,7 @@ const Sidebar = ({
 
         <div className={`p-4 ${collapsed ? "flex justify-center" : ""}`}>
           <button
+          onClick={handleLogout}
             className={`flex items-center ${
               collapsed
                 ? "p-2 rounded-full"
@@ -206,7 +226,7 @@ const Sidebar = ({
             className="absolute inset-0 bg-black opacity-30"
             onClick={onClose}
           ></div>
-          <div className="absolute left-0 top-0 bottom-0 w-64 bg-white p-4">
+          <div className="absolute left-0 top-0 bottom-0 w-64 bg-white p-4 flex flex-col h-full">
             <div className="h-16 flex items-center">
               <div className="w-10 h-10 rounded-md bg-linear-to-br from-[#0BCCEB] to-[#0A80F5] flex items-center justify-center text-white font-semibold mr-3">
                 PM
@@ -216,7 +236,7 @@ const Sidebar = ({
                 <div className="text-xs text-gray-500">Admin Panel</div>
               </div>
             </div>
-            <nav className="mt-4 space-y-1">
+            <nav className="mt-4 space-y-1 flex-1">
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -229,6 +249,26 @@ const Sidebar = ({
                 </NavLink>
               ))}
             </nav>
+            <button
+              onClick={handleLogout}
+              className="flex items-center w-full text-left px-3 py-2 rounded-lg border border-gray-100 text-sm text-gray-700 hover:bg-gray-50 mt-4"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span className="ml-3">Logout</span>
+            </button>
           </div>
         </div>
       )}

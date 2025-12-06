@@ -11,14 +11,18 @@ import PendingInstituteDetailsPage from "./Pages/Home/PendingInstitute/PendingIn
 import VerifiedInstitute from "./Pages/Home/VerifiedInstitute/VerifiedInstitute";
 import VerifiedInstituteDetailsPage from "./Pages/Home/VerifiedInstitute/VerifiedInstituteDetailsPage";
 import Chat from "./Pages/Home/Chat";
+import { Provider } from "react-redux";
+import appStore from "./Components/utils/appstore";
 
 function App() {
   
 
   return (
+    <Provider store={appStore}>
     <div>
       <RouterProvider router={appRouter} />
     </div>
+    </Provider>
   )
 }
 
