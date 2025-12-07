@@ -1,8 +1,9 @@
 import axios from "axios";
-import React from "react";
-import { useDispatch } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
 import { removeUser } from "../utils/userSlice";
+import { setPendingCount, setPendingInstitutes, setVerifiedCount, setVerifiedInstitutes } from "../utils/instituteSlice";
 
 const navItems = [
   {
@@ -130,8 +131,63 @@ const Sidebar = ({
   mobileOpen = false,
   onClose = () => {},
 }) => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+
+const dispatch = useDispatch();
+const navigate = useNavigate();
+
+    const pending = useSelector((state) => state.institute.pending) || [];
+  const verified = useSelector((state) => state.institute.verified) || [];
+
+  const pendingCount = pending.length || 0;
+  const verifiedCount = verified.length || 0;
+
+  const fetchPending = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:3000/sadmin/pendingInstitutes",
+        { withCredentials: true }
+      );
+      dispatch(setPendingCount(res.data?.data?.length || 0));
+    } catch (err) {
+      console.error("Error fetching pending institutes:", err);
+    }
+  };
+
+  const fetchVerified = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:3000/sadmin/verifiedInstitutes",
+        { withCredentials: true }
+      );
+      dispatch(setVerifiedCount(res.data?.data?.length || 0));
+    } catch (err) {
+      console.error("Error fetching verified institutes:", err);
+    }
+  };
+
+  // 🔁 Extra Tip: auto-fetch on dashboard load (and on refresh)
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        
+        // Only fetch if arrays are empty (avoids double-fetch
+        // if lists page already loaded them)
+        if (pending.length === 0) {
+          await fetchPending();
+        }
+        if (verified.length === 0) {
+          await fetchVerified();
+        }
+      } catch (err) {
+        console.error("Error loading institute data:", err);
+      }
+    };
+
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  
   const handleLogout = async () => {
     try {
       await axios.post("http://localhost:3000/sadmin/logout", 

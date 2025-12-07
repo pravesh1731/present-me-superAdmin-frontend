@@ -1,223 +1,565 @@
-import React, { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { getVerifiedInstituteById } from '../../../data/verifiedInstitutesData'
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getVerifiedInstituteById } from "../../../data/verifiedInstitutesData";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import { motion } from "framer-motion";
 
-const TabButton = ({active, onClick, children}) => (
-  <button
+const TabButton = ({ active, onClick, children }) => (
+  <motion.button
     onClick={onClick}
-    className={`px-4 md:px-6 py-2.5 text-sm font-medium rounded-t-lg border-b-2 ${active ? 'text-indigo-600 border-indigo-600 bg-white' : 'text-gray-500 border-transparent hover:text-gray-700'}`}
+    className={`px-4 md:px-6 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-all duration-200 ${
+      active
+        ? "text-indigo-600 border-indigo-600 bg-white shadow"
+        : "text-gray-500 border-transparent hover:text-indigo-700 hover:bg-gray-50"
+    }`}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.97 }}
   >
     {children}
-  </button>
-)
+  </motion.button>
+);
 
-function VerifiedInstituteDetailsPage(){
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('Details')
+function VerifiedInstituteDetailsPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("Details");
 
-  const institute = getVerifiedInstituteById(id)
+  const verified = useSelector((store) => store.institute.verified) || {};
 
-  if(!institute){
+  // Try to get institute from Redux first
+  const instituteFromStore = useMemo(() => {
+    if (Array.isArray(verified.data)) {
+      return verified.data.find(
+        (inst) => String(inst.institutionId) === String(id)
+      );
+    }
+    return null;
+  }, [verified, id]);
+
+  const [institute, setInstitute] = useState(instituteFromStore);
+  const [loading, setLoading] = useState(!instituteFromStore);
+  const [error, setError] = useState(null);
+
+  // If not in Redux (e.g. on refresh), fetch from backend
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    // if already have from store, no need to fetch
+    if (instituteFromStore) {
+      setInstitute(instituteFromStore);
+      setLoading(false);
+      return;
+    }
+
+    const fetchInstitute = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // You already have this API returning all pending institutes
+        const res = await axios.get(
+          "http://localhost:3000/sadmin/verifiedInstitutes",
+          { withCredentials: true }
+        );
+
+        const list = res.data?.data || [];
+        const found = list.find(
+          (inst) => String(inst.institutionId) === String(id)
+        );
+
+        setInstitute(found || null);
+      } catch (err) {
+        console.error("Error fetching institute:", err);
+        setError("Failed to load institute details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInstitute();
+  }, [id, instituteFromStore]);
+
+  if (!institute) {
     return (
-      <div className="p-6">
-        <div className="bg-white rounded-xl p-8 text-center">
-          <p className="text-gray-500">Institute not found</p>
-          <button onClick={()=>navigate('/verified-institutes')} className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg">Back to list</button>
+      <motion.div
+        className="p-6"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="bg-white rounded-xl p-8 text-center shadow-xl">
+          <p className="text-gray-500 text-lg">Institute not found</p>
+          <button
+            onClick={() => navigate("/verified-institutes")}
+            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow"
+          >
+            Back to list
+          </button>
         </div>
-      </div>
-    )
+      </motion.div>
+    );
   }
 
+  // Card animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 40, scale: 0.97 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 80, damping: 16 },
+    },
+    hover: {
+      scale: 1.03,
+      boxShadow: "0 8px 32px 0 rgba(60, 72, 180, 0.14)",
+    },
+  };
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full">
       <div className="max-w-7xl mx-auto p-4 md:p-6">
         {/* Top bar with back + name + actions */}
-        <div className="flex items-center justify-between mb-4">
+        <motion.div
+          className="flex items-center justify-between mb-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="flex items-center gap-3">
-            <button onClick={()=>navigate('/verified-institutes')} className="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <motion.button
+              onClick={() => navigate("/verified-institutes")}
+              className="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 shadow transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
               Back
-            </button>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-800">{institute.name}</h1>
+            </motion.button>
+            <h1 className="text-xl md:text-2xl font-bold text-indigo-800 drop-shadow-sm">
+              {institute.InstitutionName}
+            </h1>
           </div>
           <div className="flex items-center gap-2 ">
-            <button 
-              onClick={()=>navigate('/chat')} 
-              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            <motion.button
+              onClick={() => navigate("/chat")}
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm text-gray-700 hover:bg-indigo-50 shadow transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.97 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
               Chat
-            </button>
-            <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs">Verified</span>
+            </motion.button>
+            <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold shadow">
+              Verified
+            </span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm p-3 md:p-4 mb-4 md:mb-6">
+        <motion.div
+          className="bg-white rounded-xl shadow-xl p-3 md:p-4 mb-4 md:mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="flex gap-2 border-b">
-            <TabButton active={activeTab==='Details'} onClick={()=>setActiveTab('Details')}>Details</TabButton>
-            <TabButton active={activeTab==='Teachers'} onClick={()=>setActiveTab('Teachers')}>Teachers</TabButton>
-            <TabButton active={activeTab==='Students'} onClick={()=>setActiveTab('Students')}>Students</TabButton>
-            <TabButton active={activeTab==='Activity'} onClick={()=>setActiveTab('Activity')}>Activity</TabButton>
+            <TabButton
+              active={activeTab === "Details"}
+              onClick={() => setActiveTab("Details")}
+            >
+              Details
+            </TabButton>
+            <TabButton
+              active={activeTab === "Teachers"}
+              onClick={() => setActiveTab("Teachers")}
+            >
+              Teachers
+            </TabButton>
+            <TabButton
+              active={activeTab === "Students"}
+              onClick={() => setActiveTab("Students")}
+            >
+              Students
+            </TabButton>
+            <TabButton
+              active={activeTab === "Activity"}
+              onClick={() => setActiveTab("Activity")}
+            >
+              Activity
+            </TabButton>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left summary card */}
-          <div className="bg-white rounded-xl shadow-sm p-6 space-y-5">
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M4 21V10l8-6 8 6v11"/><path d="M9 21v-8h6v8"/><path d="M12 2v3"/></svg>
-              </div>
+          <motion.div
+            className="bg-white rounded-3xl shadow-xl p-8 space-y-6 relative overflow-hidden"
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            whileHover="hover"
+          >
+            {/* 3D floating accent */}
+            <motion.div
+              className="absolute -top-8 -right-8 w-24 h-24 rounded-full bg-indigo-100 opacity-30 blur-2xl z-0"
+              animate={{ rotate: 360 }}
+              transition={{
+                repeat: Infinity,
+                duration: 16,
+                ease: "linear",
+              }}
+            />
+            <div className="flex items-start gap-4 relative z-10">
+              
+                <motion.div
+                  className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-indigo-200 shadow-lg border-2 border-indigo-100"
+                  whileHover={{ scale: 1.08, rotate: 6 }}
+                  transition={{ type: "spring", stiffness: 120 }}
+                >
+                  {institute.profilePicUrl ? (
+                    <img
+                      src={institute.profilePicUrl}
+                      alt={institute.InstitutionName?.charAt(0).toUpperCase()}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-indigo-700 font-bold text-2xl">
+                      {institute.InstitutionName?.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </motion.div>
+              
               <div>
-                <div className="text-sm font-medium text-gray-800">{institute.name}</div>
-                <div className="text-xs mt-1 text-gray-500">{institute.type}</div>
+                <div className="text-lg font-semibold text-gray-800">
+                  {institute.InstitutionName}
+                </div>
+                <div className="text-xs mt-1 text-gray-500">
+                  {institute.type}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <div className="text-xs text-gray-500">Established</div>
-              <div className="text-sm font-medium text-gray-800 mt-0.5">{institute.established}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Accreditation</div>
-              <div className="text-sm font-medium text-gray-800 mt-0.5">{institute.accreditation}</div>
             </div>
             <div>
               <div className="text-xs text-gray-500">Registered Date</div>
-              <div className="text-sm font-medium text-gray-800 mt-0.5">{institute.registeredDate}</div>
+              <div className="text-sm font-medium text-gray-800 mt-0.5">
+                {institute.createdAt}
+              </div>
             </div>
-            <div>
-              <div className="text-xs text-gray-500">Verified Date</div>
-              <div className="text-sm font-medium text-gray-800 mt-0.5">{institute.verifiedDate}</div>
-            </div>
-
-            {/* Quick Stats */}
             <div className="pt-5 border-t">
-              <h4 className="text-sm font-semibold text-gray-800 mb-4">Quick Stats</h4>
+              <h4 className="text-sm font-semibold text-gray-800 mb-4">
+                Quick Stats
+              </h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4 text-blue-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                    </svg>
                     <span className="text-sm text-gray-600">Students</span>
                   </div>
-                  <span className="text-lg font-semibold text-gray-800">{institute.quickStats.students}</span>
+                  <span className="text-lg font-semibold text-gray-800">
+                    {institute.expectedStudents}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4 text-purple-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                    </svg>
                     <span className="text-sm text-gray-600">Teachers</span>
                   </div>
-                  <span className="text-lg font-semibold text-gray-800">{institute.quickStats.teachers}</span>
+                  <span className="text-lg font-semibold text-gray-800">
+                    {institute.expectedTeachers}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    <span className="text-sm text-gray-600">Active Classes</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4 text-emerald-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                    <span className="text-sm text-gray-600">
+                      Active Classes
+                    </span>
                   </div>
-                  <span className="text-lg font-semibold text-gray-800">{institute.quickStats.activeClasses}</span>
+                  {/* <span className="text-lg font-semibold text-gray-800">{institute.expectedActiveClasses}</span> */}
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Right main content */}
           <div className="lg:col-span-2 space-y-4 md:space-y-6">
             {/* Details Tab */}
-            {activeTab === 'Details' && (
-              <>
+            {activeTab === "Details" && (
+              <motion.div
+                className="space-y-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 {/* Institute Information */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-base font-semibold text-gray-800 mb-4">Institute Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div className="bg-white rounded-3xl shadow-xl p-8">
+                  <h3 className="text-lg font-semibold text-indigo-800 mb-4">
+                    Institute Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
-                      <div className="text-sm font-medium text-gray-700 mb-3">Contact Information</div>
+                      <div className="text-sm font-medium text-gray-700 mb-3">
+                        Contact Information
+                      </div>
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                            <circle cx="12" cy="10" r="3" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Address</div>
-                            <div className="text-sm text-gray-800">{institute.address.full}</div>
-                            <div className="text-xs text-gray-500 mt-1">{institute.address.city}</div>
-                            <div className="text-xs text-gray-500">{institute.address.country} - {institute.address.zip}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Address
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.address}
+                            </div>
+                            {/* <div className="text-xs text-gray-500 mt-1">{institute.address.city}</div>
+                            <div className="text-xs text-gray-500">{institute.address.country} - {institute.address.zip}</div> */}
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="5" width="18" height="14" rx="2" />
+                            <path d="M3 7l9 6 9-6" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Email</div>
-                            <div className="text-sm text-gray-800">{institute.email}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Email
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.emailId}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Phone</div>
-                            <div className="text-sm text-gray-800">{institute.phone}</div>
-                            <div className="text-xs text-gray-500 mt-1">{institute.alternatePhone}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Phone
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.phone}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 6v6l4 2" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Website</div>
-                            <a href={institute.website} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 hover:underline">{institute.website.replace('https://','')}</a>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Website
+                            </div>
+                            <a
+                              href={institute.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm text-indigo-600 hover:underline"
+                            >
+                              {institute.website.replace("https://", "")}
+                            </a>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <div className="text-sm font-medium text-gray-700 mb-3">Contact Person Details</div>
+                      <div className="text-sm font-medium text-gray-700 mb-3">
+                        Contact Person Details
+                      </div>
                       <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Name & Designation</div>
-                            <div className="text-sm text-gray-800">{institute.contactPerson.name}</div>
-                            <div className="text-xs text-gray-500">{institute.contactPerson.designation}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Name & Designation
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.firstName + " " + institute.lastName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {institute.role}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="5" width="18" height="14" rx="2" />
+                            <path d="M3 7l9 6 9-6" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Email</div>
-                            <div className="text-sm text-gray-800">{institute.contactPerson.email}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Email
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.emailId}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-5 h-5 text-gray-400 mt-0.5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+                          </svg>
                           <div>
-                            <div className="text-xs text-gray-500 mb-1">Phone</div>
-                            <div className="text-sm text-gray-800">{institute.contactPerson.phone}</div>
+                            <div className="text-xs text-gray-500 mb-1">
+                              Phone
+                            </div>
+                            <div className="text-sm text-gray-800">
+                              {institute.phone}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* About */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="text-base font-semibold text-gray-800 mb-3">About</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">{institute.about}</p>
-                </div>
-
+                <motion.div className="bg-white rounded-3xl shadow-xl p-8">
+                  <h3 className="text-lg font-semibold text-indigo-800 mb-3">
+                    About
+                  </h3>
+                  <p className="text-base text-gray-700 leading-relaxed">
+                    {institute.bio}
+                  </p>
+                </motion.div>
                 {/* Departments */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
+                {/* <div className="bg-white rounded-xl shadow-sm p-6">
                   <h3 className="text-base font-semibold text-gray-800 mb-3">Departments</h3>
                   <div className="flex flex-wrap gap-2">
                     {institute.departments.map((d, idx) => (
                       <span key={idx} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm">{d}</span>
                     ))}
                   </div>
-                </div>
-              </>
+                </div> */}
+              </motion.div>
             )}
 
             {/* Teachers Tab */}
-            {activeTab === 'Teachers' && (
+            {/* {activeTab === 'Teachers' && (
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h3 className="text-base font-semibold text-gray-800 mb-4">Teachers ({institute.teachers?.length || 0})</h3>
                 <div className="overflow-x-auto">
@@ -251,10 +593,10 @@ function VerifiedInstituteDetailsPage(){
                   </table>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Students Tab */}
-            {activeTab === 'Students' && (
+            {/* {activeTab === 'Students' && (
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h3 className="text-base font-semibold text-gray-800 mb-4">Students ({institute.students?.length || 0})</h3>
                 <div className="overflow-x-auto">
@@ -290,10 +632,10 @@ function VerifiedInstituteDetailsPage(){
                   </table>
                 </div>
               </div>
-            )}
+            )} */}
 
             {/* Activity Tab */}
-            {activeTab === 'Activity' && (
+            {/* {activeTab === 'Activity' && (
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h3 className="text-base font-semibold text-gray-800 mb-4">Recent Activity</h3>
                 <div className="space-y-4">
@@ -327,13 +669,12 @@ function VerifiedInstituteDetailsPage(){
                   ))}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
-
       </div>
     </div>
-  )
+  );
 }
 
-export default VerifiedInstituteDetailsPage
+export default VerifiedInstituteDetailsPage;
