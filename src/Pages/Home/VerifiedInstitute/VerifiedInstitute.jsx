@@ -28,7 +28,7 @@ function VerifiedInstitute() {
   }, []);
 
   const handleViewDetails = (verified) => {
-    navigate(`/verified-institutes/${verified.institutionId}`);
+    navigate(`/superadmin/verified-institutes/${verified.institutionId}`);
   };
 
   const filteredInstitutes = Array.isArray(verified.data)
@@ -245,7 +245,7 @@ function VerifiedInstitute() {
                   View
                 </motion.button>
                 <motion.button
-                  onClick={() => navigate("/chat")}
+                  onClick={() => navigate("/superadmin/chat")}
                   className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium shadow transition-all active:scale-95"
                   whileTap={{ scale: 0.97 }}
                 >

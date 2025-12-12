@@ -27,7 +27,7 @@ function PendingInstitute() {
   }, []);
 
   const handleViewDetails = (pending) => {
-    navigate(`/pending-institutes/${pending.institutionId}`);
+    navigate(`/superadmin/pending-institutes/${pending.institutionId}`);
   };
 
   // Card animation variants

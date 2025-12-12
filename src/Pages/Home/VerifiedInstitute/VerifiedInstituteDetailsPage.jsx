@@ -89,7 +89,7 @@ function VerifiedInstituteDetailsPage() {
         <div className="bg-white rounded-xl p-8 text-center shadow-xl">
           <p className="text-gray-500 text-lg">Institute not found</p>
           <button
-            onClick={() => navigate("/verified-institutes")}
+            onClick={() => navigate("superadmin/verified-institutes")}
             className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow"
           >
             Back to list
@@ -125,7 +125,7 @@ function VerifiedInstituteDetailsPage() {
         >
           <div className="flex items-center gap-3">
             <motion.button
-              onClick={() => navigate("/verified-institutes")}
+              onClick={() => navigate("/superadmin/verified-institutes")}
               className="flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm hover:bg-gray-50 shadow transition-all"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
@@ -151,7 +151,7 @@ function VerifiedInstituteDetailsPage() {
           </div>
           <div className="flex items-center gap-2 ">
             <motion.button
-              onClick={() => navigate("/chat")}
+              onClick={() => navigate("/superadmin/chat")}
               className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 border rounded-lg text-sm text-gray-700 hover:bg-indigo-50 shadow transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
@@ -230,25 +230,24 @@ function VerifiedInstituteDetailsPage() {
               }}
             />
             <div className="flex items-start gap-4 relative z-10">
-              
-                <motion.div
-                  className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-indigo-200 shadow-lg border-2 border-indigo-100"
-                  whileHover={{ scale: 1.08, rotate: 6 }}
-                  transition={{ type: "spring", stiffness: 120 }}
-                >
-                  {institute.profilePicUrl ? (
-                    <img
-                      src={institute.profilePicUrl}
-                      alt={institute.InstitutionName?.charAt(0).toUpperCase()}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-indigo-700 font-bold text-2xl">
-                      {institute.InstitutionName?.charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </motion.div>
-              
+              <motion.div
+                className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-indigo-200 shadow-lg border-2 border-indigo-100"
+                whileHover={{ scale: 1.08, rotate: 6 }}
+                transition={{ type: "spring", stiffness: 120 }}
+              >
+                {institute.profilePicUrl ? (
+                  <img
+                    src={institute.profilePicUrl}
+                    alt={institute.InstitutionName?.charAt(0).toUpperCase()}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-indigo-700 font-bold text-2xl">
+                    {institute.InstitutionName?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </motion.div>
+
               <div>
                 <div className="text-lg font-semibold text-gray-800">
                   {institute.InstitutionName}

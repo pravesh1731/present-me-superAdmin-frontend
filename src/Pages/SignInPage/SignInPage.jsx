@@ -29,7 +29,7 @@ const SignInPage = () => {
         { withCredentials: true }
       );
       dispatch(addUser(response.data));
-      navigate("/");
+      navigate("/superadmin");
     } catch (err) {
       console.log("Error during sign in:", err);
       setError(

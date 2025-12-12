@@ -50,7 +50,7 @@ const ErrorPage = () => {
           {/* Action Button */}
           <div className="mt-6">
             <motion.button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/superadmin")}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="flex items-center justify-center gap-2 bg-white text-[#0A80F5] px-8 py-3 rounded-xl font-medium shadow-lg hover:shadow-2xl transition-all"

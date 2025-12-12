@@ -78,10 +78,10 @@ function PendingInstituteDetailsPage() {
       );
 
       // Option A: navigate back to pending list
-      // navigate("/pending-institutes");
+      // navigate("/superadmin/pending-institutes");
 
       // Option B (alternative): show success & maybe redirect to verified page
-      navigate("/verified-institutes");
+      navigate("/superadmin/verified-institutes");
     } catch (err) {
       console.error("Error approving institute:", err);
       setApproveError("Failed to approve institute. Please try again.");
@@ -106,7 +106,7 @@ function PendingInstituteDetailsPage() {
         <div className="bg-white rounded-lg p-6 text-center shadow-md">
           <p className="text-gray-500">{error || "Institute not found"}</p>
           <button
-            onClick={() => navigate("/pending-institutes")}
+            onClick={() => navigate("/superadmin/pending-institutes")}
             className="mt-4 bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg"
           >
             Back to List
@@ -123,7 +123,7 @@ function PendingInstituteDetailsPage() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => navigate("/pending-institutes")}
+          onClick={() => navigate("/superadmin/pending-institutes")}
           className="mb-4 flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors"
         >
           <svg

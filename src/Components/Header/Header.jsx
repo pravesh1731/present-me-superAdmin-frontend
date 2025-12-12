@@ -7,12 +7,12 @@ import { addUser } from "../utils/userSlice";
 import { Store } from "lucide-react";
 
 const titleMap = {
-  "/": "Dashboard",
-  "/teachers": "Teachers",
-  "/students": "Students",
-  "/pending-institutes": "Pending Institutes",
-  "/verified-institutes": "Verified Institutes",
-  "/chat": "Chat",
+  "/superadmin": "Dashboard",
+  "/superadmin/teachers": "Teachers",
+  "/superadmin/students": "Students",
+  "/superadmin/pending-institutes": "Pending Institutes",
+  "/superadmin/verified-institutes": "Verified Institutes",
+  "/superadmin/chat": "Chat",
 };
 
 const Header = () => {
@@ -37,7 +37,7 @@ const Header = () => {
     } catch (err) {
       setFetchError(err);
       if (err.response && err.response.status === 401) {
-        navigate("/signin");
+        navigate("/superadmin/signin");
       }
     } finally {
       setLoading(false);
@@ -52,10 +52,10 @@ const Header = () => {
 
   // Handle dynamic routes like /pending-institutes/:id
   let title = titleMap[location.pathname] || "Dashboard";
-  if (location.pathname.startsWith("/pending-institutes/")) {
+  if (location.pathname.startsWith("/superadmin/pending-institutes/")) {
     title = "Institute Details";
   }
-  if (location.pathname.startsWith("/verified-institutes/")) {
+  if (location.pathname.startsWith("/superadmin/verified-institutes/")) {
     title = "Institute Details";
   }
 

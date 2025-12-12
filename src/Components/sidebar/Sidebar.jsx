@@ -3,11 +3,16 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { NavLink, useNavigate } from "react-router-dom";
 import { removeUser } from "../utils/userSlice";
-import { setPendingCount, setPendingInstitutes, setVerifiedCount, setVerifiedInstitutes } from "../utils/instituteSlice";
+import {
+  setPendingCount,
+  setPendingInstitutes,
+  setVerifiedCount,
+  setVerifiedInstitutes,
+} from "../utils/instituteSlice";
 
 const navItems = [
   {
-    to: "/",
+    to: "/superadmin",
     label: "Dashboard",
     icon: (
       <svg
@@ -28,7 +33,7 @@ const navItems = [
     ),
   },
   {
-    to: "/teachers",
+    to: "/superadmin/teachers",
     label: "Teachers",
     icon: (
       <svg
@@ -47,7 +52,7 @@ const navItems = [
     ),
   },
   {
-    to: "/students",
+    to: "/superadmin/students",
     label: "Students",
     icon: (
       <svg
@@ -67,7 +72,7 @@ const navItems = [
     ),
   },
   {
-    to: "/pending-institutes",
+    to: "/superadmin/pending-institutes",
     label: "Pending Institutes",
     icon: (
       <svg
@@ -86,7 +91,7 @@ const navItems = [
     ),
   },
   {
-    to: "/verified-institutes",
+    to: "/superadmin/verified-institutes",
     label: "Verified Institutes",
     icon: (
       <svg
@@ -105,7 +110,7 @@ const navItems = [
     ),
   },
   {
-    to: "/chat",
+    to: "/superadmin/chat",
     label: "Chat",
     icon: (
       <svg
@@ -131,11 +136,10 @@ const Sidebar = ({
   mobileOpen = false,
   onClose = () => {},
 }) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-const dispatch = useDispatch();
-const navigate = useNavigate();
-
-    const pending = useSelector((state) => state.institute.pending) || [];
+  const pending = useSelector((state) => state.institute.pending) || [];
   const verified = useSelector((state) => state.institute.verified) || [];
 
   const pendingCount = pending.length || 0;
@@ -169,7 +173,6 @@ const navigate = useNavigate();
   useEffect(() => {
     const loadData = async () => {
       try {
-        
         // Only fetch if arrays are empty (avoids double-fetch
         // if lists page already loaded them)
         if (pending.length === 0) {
@@ -187,16 +190,17 @@ const navigate = useNavigate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/sadmin/logout", 
+      await axios.post(
+        "http://localhost:3000/sadmin/logout",
         {},
         {
-        withCredentials: true,
-      });
+          withCredentials: true,
+        }
+      );
       dispatch(removeUser());
-      navigate("/signin");
+      navigate("/superadmin/signin");
     } catch (err) {
       console.error("Logout failed:", err);
     }
@@ -249,7 +253,7 @@ const navigate = useNavigate();
 
         <div className={`p-4 ${collapsed ? "flex justify-center" : ""}`}>
           <button
-          onClick={handleLogout}
+            onClick={handleLogout}
             className={`flex items-center ${
               collapsed
                 ? "p-2 rounded-full"

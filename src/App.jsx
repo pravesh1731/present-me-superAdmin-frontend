@@ -15,36 +15,42 @@ import { Provider } from "react-redux";
 import appStore from "./Components/utils/appstore";
 
 function App() {
-  
-
   return (
     <Provider store={appStore}>
-    <div>
-      <RouterProvider router={appRouter} />
-    </div>
+      <div>
+        <RouterProvider router={appRouter} />
+      </div>
     </Provider>
-  )
+  );
 }
 
 const appRouter = createBrowserRouter([
   {
-    path: "/",
+    path: "/superadmin",
     element: <Header />,
     children: [
       { index: true, element: <Dashboard /> },
-      { path: "/teachers", element: <Teacher /> },
-      { path: "/students", element: <Student /> },
-      { path: "/pending-institutes", element: <PendingInstitute /> },
-      { path: "/pending-institutes/:id", element: <PendingInstituteDetailsPage /> },
-      { path: "/verified-institutes", element: <VerifiedInstitute /> },
-  { path: "/verified-institutes/:id", element: <VerifiedInstituteDetailsPage /> },
-      { path: "/chat", element: <Chat /> },
-      
+      { path: "/superadmin/teachers", element: <Teacher /> },
+      { path: "/superadmin/students", element: <Student /> },
+      { path: "/superadmin/pending-institutes", element: <PendingInstitute /> },
+      {
+        path: "/superadmin/pending-institutes/:id",
+        element: <PendingInstituteDetailsPage />,
+      },
+      {
+        path: "/superadmin/verified-institutes",
+        element: <VerifiedInstitute />,
+      },
+      {
+        path: "/superadmin/verified-institutes/:id",
+        element: <VerifiedInstituteDetailsPage />,
+      },
+      { path: "/superadmin/chat", element: <Chat /> },
     ],
     errorElement: <ErrorPage />,
   },
   {
-    path: "/signin",
+    path: "/superadmin/signin",
     element: <SignInPage />,
     errorElement: <ErrorPage />,
   },
