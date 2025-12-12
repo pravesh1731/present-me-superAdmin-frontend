@@ -4,6 +4,7 @@ import { getVerifiedInstituteById } from "../../../data/verifiedInstitutesData";
 import { useSelector } from "react-redux";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { BaseUrl } from "../../../Components/utils/constants";
 
 const TabButton = ({ active, onClick, children }) => (
   <motion.button
@@ -58,7 +59,7 @@ function VerifiedInstituteDetailsPage() {
 
         // You already have this API returning all pending institutes
         const res = await axios.get(
-          "http://localhost:3000/sadmin/verifiedInstitutes",
+          BaseUrl + "/sadmin/verifiedInstitutes",
           { withCredentials: true }
         );
 

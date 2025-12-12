@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { setVerifiedInstitutes } from "../../../Components/utils/instituteSlice";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import { BaseUrl } from "../../../Components/utils/constants";
 
 function VerifiedInstitute() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -14,7 +15,7 @@ function VerifiedInstitute() {
   const getInstituteDetails = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:3000/sadmin/verifiedInstitutes",
+        BaseUrl + "/sadmin/verifiedInstitutes",
         { withCredentials: true }
       );
       dispatch(setVerifiedInstitutes(response.data));

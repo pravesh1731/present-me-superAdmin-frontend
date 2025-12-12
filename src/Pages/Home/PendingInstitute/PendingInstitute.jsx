@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import { setPendingInstitutes } from "../../../Components/utils/instituteSlice";
+import { BaseUrl } from "../../../Components/utils/constants";
 
 function PendingInstitute() {
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ function PendingInstitute() {
   const getInstituteDetails = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:3000/sadmin/pendingInstitutes",
+        BaseUrl + "/sadmin/pendingInstitutes",
         { withCredentials: true }
       );
       dispatch(setPendingInstitutes(response.data));

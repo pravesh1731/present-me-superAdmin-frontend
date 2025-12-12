@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
 import { addUser } from "../utils/userSlice";
 import { Store } from "lucide-react";
+import { BaseUrl } from "../utils/constants";
 
 const titleMap = {
   "/superadmin": "Dashboard",
@@ -28,7 +29,7 @@ const Header = () => {
 
   const fetchUserData = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/sadmin/profile", {
+      const response = await axios.get(BaseUrl + "/sadmin/profile", {
         withCredentials: true,
       });
 

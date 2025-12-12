@@ -9,6 +9,7 @@ import {
   setVerifiedCount,
   setVerifiedInstitutes,
 } from "../utils/instituteSlice";
+import { BaseUrl } from "../utils/constants";
 
 const navItems = [
   {
@@ -148,7 +149,7 @@ const Sidebar = ({
   const fetchPending = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:3000/sadmin/pendingInstitutes",
+        BaseUrl + "/sadmin/pendingInstitutes",
         { withCredentials: true }
       );
       dispatch(setPendingCount(res.data?.data?.length || 0));
@@ -160,7 +161,7 @@ const Sidebar = ({
   const fetchVerified = async () => {
     try {
       const res = await axios.get(
-        "http://localhost:3000/sadmin/verifiedInstitutes",
+        BaseUrl + "/sadmin/verifiedInstitutes",
         { withCredentials: true }
       );
       dispatch(setVerifiedCount(res.data?.data?.length || 0));
@@ -193,7 +194,7 @@ const Sidebar = ({
   const handleLogout = async () => {
     try {
       await axios.post(
-        "http://localhost:3000/sadmin/logout",
+        BaseUrl + "/sadmin/logout",
         {},
         {
           withCredentials: true,

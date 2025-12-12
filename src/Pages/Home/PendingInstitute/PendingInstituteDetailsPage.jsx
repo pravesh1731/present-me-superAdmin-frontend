@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
+import { BaseUrl } from "../../../Components/utils/constants";
 
 function PendingInstituteDetailsPage() {
   const { id } = useParams();
@@ -45,7 +46,7 @@ function PendingInstituteDetailsPage() {
 
         // You already have this API returning all pending institutes
         const res = await axios.get(
-          "http://localhost:3000/sadmin/pendingInstitutes",
+          BaseUrl + "/sadmin/pendingInstitutes",
           { withCredentials: true }
         );
 
@@ -72,7 +73,7 @@ function PendingInstituteDetailsPage() {
       setApproveError(null);
 
       await axios.patch(
-        `http://localhost:3000/sadmin/institutes/${id}/status`,
+        `${BaseUrl}/sadmin/institutes/${id}/status`,
         { status: "verified" },
         { withCredentials: true }
       );
