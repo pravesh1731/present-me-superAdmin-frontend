@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { addUser } from "../../Components/utils/userSlice";
+import { BaseUrl } from "../../Components/utils/constants";
 
 const SignInPage = () => {
   const [emailId, setEmail] = useState("");
