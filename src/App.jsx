@@ -25,6 +25,12 @@ function App() {
 }
 
 const appRouter = createBrowserRouter([
+
+  {
+    path: "/superadmin/signin",
+    element: <SignInPage />,
+    errorElement: <ErrorPage />,
+  },
   {
     path: "/superadmin",
     element: <Header />,
@@ -49,11 +55,7 @@ const appRouter = createBrowserRouter([
     ],
     errorElement: <ErrorPage />,
   },
-  {
-    path: "/superadmin/signin",
-    element: <SignInPage />,
-    errorElement: <ErrorPage />,
-  },
+  
 ]);
 
 export default App;
