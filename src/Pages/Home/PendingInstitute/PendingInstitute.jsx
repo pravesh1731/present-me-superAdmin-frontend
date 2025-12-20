@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
@@ -9,18 +9,20 @@ import { BaseUrl } from "../../../Components/utils/constants";
 function PendingInstitute() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const pending = useSelector((state) => state.institute.pending)|| {};
+  const pending = useSelector((state) => state.institute.pending) || {};
+  const [loading, setLoading] = useState(true);
 
   const getInstituteDetails = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get(
-        BaseUrl + "/sadmin/pendingInstitutes",
-        { withCredentials: true }
-      );
+      const response = await axios.get(BaseUrl + "/sadmin/pendingInstitutes", {
+        withCredentials: true,
+      });
       dispatch(setPendingInstitutes(response.data));
     } catch (err) {
       console.error(err);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -46,6 +48,40 @@ function PendingInstitute() {
     },
   };
 
+  // Shimmer placeholder component
+  const ShimmerCard = () => (
+    <div className="bg-white rounded-3xl p-12 shadow-xl border border-gray-100 relative overflow-hidden animate-pulse">
+      <div className="flex flex-col lg:flex-row items-start justify-between gap-6 mb-6">
+        <div className="flex items-start gap-5">
+          <div className="w-16 h-16 rounded-full bg-indigo-200" />
+          <div>
+            <div className="h-6 w-32 bg-gray-200 rounded mb-2" />
+            <div className="flex gap-2">
+              <div className="h-4 w-16 bg-amber-100 rounded" />
+              <div className="h-4 w-16 bg-indigo-100 rounded" />
+            </div>
+          </div>
+        </div>
+        <div className="h-10 w-32 bg-indigo-100 rounded-xl" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+        <div className="space-y-5">
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+        </div>
+        <div className="space-y-5">
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="border-t pt-4">
+        <div className="h-4 w-64 bg-gray-200 rounded" />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen py-8 px-2 md:px-8">
       <div className="mb-8 flex flex-col items-start ml-6">
@@ -59,7 +95,14 @@ function PendingInstitute() {
 
       <div className="space-y-12 max-w-5xl mx-auto">
         <AnimatePresence>
-          {Array.isArray(pending.data) && pending.data.length > 0 ? (
+          {loading ? (
+            // Show 3 shimmer cards while loading
+            <>
+              <ShimmerCard />
+              <ShimmerCard />
+              <ShimmerCard />
+            </>
+          ) : Array.isArray(pending.data) && pending.data.length > 0 ? (
             pending.data.map((pending, idx) => (
               <motion.div
                 key={pending.institutionId}
@@ -90,7 +133,7 @@ function PendingInstitute() {
                       className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center bg-indigo-200 shadow-lg border-2 border-indigo-100"
                       whileHover={{ scale: 1.08, rotate: 6 }}
                       transition={{ type: "spring", stiffness: 120 }}
-                     >
+                    >
                       {pending.profilePicUrl ? (
                         <img
                           src={pending.profilePicUrl}
@@ -261,9 +304,7 @@ function PendingInstitute() {
                           Registered Date
                         </div>
                         <div className="text-sm text-gray-800 mt-0.5 font-medium">
-                          {new Date(pending.createdAt).toLocaleString(
-                            "en-GB"
-                          )}
+                          {new Date(pending.createdAt).toLocaleString("en-GB")}
                         </div>
                       </div>
                     </div>
