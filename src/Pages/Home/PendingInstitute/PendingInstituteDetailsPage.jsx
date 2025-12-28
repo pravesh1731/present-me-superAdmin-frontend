@@ -79,7 +79,7 @@ function PendingInstituteDetailsPage() {
       );
 
       // Option A: navigate back to pending list
-      // navigate("/superadmin/pending-institutes");
+      // navigate("/superadmin/pending-institutes") ;
 
       // Option B (alternative): show success & maybe redirect to verified page
       navigate("/superadmin/verified-institutes");
