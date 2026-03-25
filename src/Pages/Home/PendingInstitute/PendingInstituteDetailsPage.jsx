@@ -77,7 +77,6 @@ function PendingInstituteDetailsPage() {
         { status: "verified" },
         { withCredentials: true }
       );
-
       // Option A: navigate back to pending list
       // navigate("/superadmin/pending-institutes") ;
 
