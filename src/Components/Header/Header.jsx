@@ -13,7 +13,9 @@ const titleMap = {
   "/superadmin/students": "Students",
   "/superadmin/pending-institutes": "Pending Institutes",
   "/superadmin/verified-institutes": "Verified Institutes",
-  "/superadmin/chat": "Chat",
+  "/superadmin/pyq-notes": "PYQ & Notes",
+  "/superadmin/PYQ&Notes": "PYQ & Notes",
+  "/superadmin/withdrawals": "Withdrawals",
 };
 
 const Header = () => {

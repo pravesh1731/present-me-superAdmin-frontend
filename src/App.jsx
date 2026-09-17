@@ -10,9 +10,10 @@ import PendingInstitute from "./Pages/Home/PendingInstitute/PendingInstitute";
 import PendingInstituteDetailsPage from "./Pages/Home/PendingInstitute/PendingInstituteDetailsPage";
 import VerifiedInstitute from "./Pages/Home/VerifiedInstitute/VerifiedInstitute";
 import VerifiedInstituteDetailsPage from "./Pages/Home/VerifiedInstitute/VerifiedInstituteDetailsPage";
-import Chat from "./Pages/Home/Chat";
 import { Provider } from "react-redux";
 import appStore from "./Components/utils/appstore";
+import PyqAndNotes from "./Pages/Home/Pyq&Notes";
+import Withdrawals from "./Pages/Home/Withdrawals";
 
 function App() {
   return (
@@ -45,7 +46,9 @@ const appRouter = createBrowserRouter([
         path: "/superadmin/verified-institutes/:id",
         element: <VerifiedInstituteDetailsPage />,
       },
-      { path: "/superadmin/chat", element: <Chat /> },
+      { path: "/superadmin/pyq-notes", element: <PyqAndNotes /> },
+      { path: "/superadmin/PYQ&Notes", element: <PyqAndNotes /> },
+      { path: "/superadmin/withdrawals", element: <Withdrawals /> },
     ],
     errorElement: <ErrorPage />,
   },
