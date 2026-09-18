@@ -22,7 +22,7 @@ const statusTabs = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Verified", value: "approved" },
-  { label: "Cancelled", value: "cancelled" },
+  { label: "Rejected", value: "rejected" },
 ];
 const courseDepartments = {
   "B.Tech": [
@@ -86,7 +86,7 @@ function StatusBadge({ status }) {
     value === "approved" || value === "verified"
       ? "Verified"
       : value === "rejected"
-        ? "Cancelled"
+        ? "rejected"
         : status || "Pending";
   return (
     <span
@@ -121,6 +121,10 @@ function PyqAndNotes() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [verifyForm, setVerifyForm] = useState({ amount: "", description: "" });
+  const [rejectingItem, setRejectingItem] = useState(null);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState("");
+  const [rejectDescription, setRejectDescription] = useState("");
   const [uploadForm, setUploadForm] = useState({
     type: "PYQ",
     institutionId: "",
@@ -138,7 +142,8 @@ function PyqAndNotes() {
   );
   const visibleItems = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return !term
+
+    const filteredItems = !term
       ? items
       : items.filter((item) =>
           [
@@ -160,6 +165,18 @@ function PyqAndNotes() {
             .toLowerCase()
             .includes(term),
         );
+
+    return [...filteredItems].sort((a, b) => {
+      const dateA = new Date(
+        a?.createdAt || a?.uploadedAt || a?.created_on || 0,
+      ).getTime();
+
+      const dateB = new Date(
+        b?.createdAt || b?.uploadedAt || b?.created_on || 0,
+      ).getTime();
+
+      return dateB - dateA;
+    });
   }, [items, search]);
 
   const loadNotes = async (cursor = null) => {
@@ -242,28 +259,48 @@ function PyqAndNotes() {
   );
   const openUpload = () => {
     setUploadError("");
-    setUploadForm({ type, institutionId: "", semester: "", year: "", course: "", department: "", teacherName: "", file: null });
+    setUploadForm({
+      type,
+      institutionId: "",
+      semester: "",
+      year: "",
+      course: "",
+      department: "",
+      teacherName: "",
+      file: null,
+    });
     setUploadOpen(true);
   };
   const closeUpload = () => {
     if (!uploading) setUploadOpen(false);
   };
-  const changeUploadForm = (key, value) => setUploadForm((current) => ({
-    ...current,
-    [key]: value,
-    ...(key === "course" ? { department: "" } : {}),
-  }));
+  const changeUploadForm = (key, value) =>
+    setUploadForm((current) => ({
+      ...current,
+      [key]: value,
+      ...(key === "course" ? { department: "" } : {}),
+    }));
   const handleUpload = async (event) => {
     event.preventDefault();
     setUploadError("");
     const data = new FormData();
-    ["type", "institutionId", "semester", "year", "course", "department", "teacherName"].forEach((key) => {
+    [
+      "type",
+      "institutionId",
+      "semester",
+      "year",
+      "course",
+      "department",
+      "teacherName",
+    ].forEach((key) => {
       if (uploadForm[key]) data.append(key, uploadForm[key]);
     });
     if (uploadForm.file) data.append("file", uploadForm.file);
     setUploading(true);
     try {
-      await axios.post(`${BaseUrl}/sadmin/pyq-notes/upload`, data, { withCredentials: true });
+      await axios.post(`${BaseUrl}/sadmin/pyq-notes/upload`, data, {
+        withCredentials: true,
+      });
       setUploadOpen(false);
       setStatus("approved");
       setType(uploadForm.type);
@@ -272,7 +309,10 @@ function PyqAndNotes() {
       setPage(1);
       await loadNotes();
     } catch (requestError) {
-      setUploadError(requestError.response?.data?.message || "Unable to upload the document. Please try again.");
+      setUploadError(
+        requestError.response?.data?.message ||
+          "Unable to upload the document. Please try again.",
+      );
     } finally {
       setUploading(false);
     }
@@ -292,13 +332,81 @@ function PyqAndNotes() {
     setVerifying(true);
     setVerifyError("");
     try {
-      await axios.post(`${BaseUrl}/sadmin/pyq-notes/${noteId}/verify`, { amount: Number(verifyForm.amount), description: verifyForm.description.trim() }, { withCredentials: true });
+      await axios.post(
+        `${BaseUrl}/sadmin/pyq-notes/${noteId}/verify`,
+        {
+          amount: Number(verifyForm.amount),
+          description: verifyForm.description.trim(),
+        },
+        { withCredentials: true },
+      );
       setVerifyingItem(null);
       await loadNotes(cursorHistory.at(-1) || null);
     } catch (requestError) {
-      setVerifyError(requestError.response?.data?.message || "Unable to verify this document. Please try again.");
+      setVerifyError(
+        requestError.response?.data?.message ||
+          "Unable to verify this document. Please try again.",
+      );
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const openReject = (item) => {
+    setRejectError("");
+    setRejectDescription("");
+    setRejectingItem(item);
+  };
+
+  const closeReject = () => {
+    if (!rejecting) {
+      setRejectingItem(null);
+    }
+  };
+
+  const handleReject = async (event) => {
+    event.preventDefault();
+
+    const noteId = valueOf(rejectingItem, ["noteId", "id"], "");
+
+    if (!noteId) {
+      setRejectError("Note ID is missing.");
+      return;
+    }
+
+    if (!rejectDescription.trim()) {
+      setRejectError("Rejection description is required.");
+      return;
+    }
+
+    setRejecting(true);
+    setRejectError("");
+
+    try {
+      await axios.post(
+        `${BaseUrl}/sadmin/pyq-notes/${noteId}/reject`,
+        {
+          description: rejectDescription.trim(),
+        },
+        {
+          withCredentials: true,
+        },
+      );
+
+      // Close modal
+      setRejectingItem(null);
+
+      // Refresh current page
+      await loadNotes(cursorHistory.at(-1) || null);
+    } catch (requestError) {
+      console.error("Unable to reject document:", requestError);
+
+      setRejectError(
+        requestError.response?.data?.message ||
+          "Unable to reject this document. Please try again.",
+      );
+    } finally {
+      setRejecting(false);
     }
   };
 
@@ -307,9 +415,14 @@ function PyqAndNotes() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-800">PYQ & Notes</h2>
-          <p className="mt-1 text-sm text-gray-500">Review documents submitted by institutes and students.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Review documents submitted by institutes and students.
+          </p>
         </div>
-        <button onClick={openUpload} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A80F5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0874dd]">
+        <button
+          onClick={openUpload}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A80F5] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0874dd]"
+        >
           <Upload className="h-4 w-4" /> Upload file
         </button>
       </div>
@@ -485,6 +598,7 @@ function PyqAndNotes() {
                       key={valueOf(item, ["noteId", "id", "documentId"], index)}
                       item={item}
                       onVerify={openVerify}
+                      onReject={openReject}
                     />
                   ))}
             </tbody>
@@ -506,6 +620,7 @@ function PyqAndNotes() {
                   key={valueOf(item, ["noteId", "id", "documentId"], index)}
                   item={item}
                   onVerify={openVerify}
+                  onReject={openReject}
                 />
               ))}
         </div>
@@ -543,54 +658,453 @@ function PyqAndNotes() {
           </div>
         </div>
       </section>
-      {uploadOpen && <UploadDialog form={uploadForm} institutes={institutes} years={years} uploading={uploading} error={uploadError} onClose={closeUpload} onChange={changeUploadForm} onSubmit={handleUpload} />}
-      {verifyingItem && <VerifyDialog item={verifyingItem} form={verifyForm} verifying={verifying} error={verifyError} onClose={closeVerify} onChange={(key, value) => setVerifyForm((current) => ({ ...current, [key]: value }))} onSubmit={handleVerify} />}
+      {uploadOpen && (
+        <UploadDialog
+          form={uploadForm}
+          institutes={institutes}
+          years={years}
+          uploading={uploading}
+          error={uploadError}
+          onClose={closeUpload}
+          onChange={changeUploadForm}
+          onSubmit={handleUpload}
+        />
+      )}
+      {verifyingItem && (
+        <VerifyDialog
+          item={verifyingItem}
+          form={verifyForm}
+          verifying={verifying}
+          error={verifyError}
+          onClose={closeVerify}
+          onChange={(key, value) =>
+            setVerifyForm((current) => ({ ...current, [key]: value }))
+          }
+          onSubmit={handleVerify}
+        />
+      )}
+      {rejectingItem && (
+        <RejectDialog
+          item={rejectingItem}
+          description={rejectDescription}
+          rejecting={rejecting}
+          error={rejectError}
+          onClose={closeReject}
+          onChange={setRejectDescription}
+          onSubmit={handleReject}
+        />
+      )}
     </div>
   );
 }
 
-function UploadDialog({ form, institutes, years, uploading, error, onClose, onChange, onSubmit }) {
+function UploadDialog({
+  form,
+  institutes,
+  years,
+  uploading,
+  error,
+  onClose,
+  onChange,
+  onSubmit,
+}) {
   const departments = courseDepartments[form.course] || [];
-  const semesters = ["1st Semester", "2nd Semester", "3rd Semester", "4th Semester", "5th Semester", "6th Semester", "7th Semester", "8th Semester"];
-  const selectClass = "mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0A80F5] focus:ring-2 focus:ring-blue-100";
-  return <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="upload-title">
-    <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-      <div className="flex items-start justify-between border-b border-gray-100 p-5 sm:p-6"><div><h3 id="upload-title" className="text-lg font-semibold text-gray-800">Upload PYQ or Notes</h3><p className="mt-1 text-sm text-gray-500">Required fields are marked with an asterisk.</p></div><button onClick={onClose} disabled={uploading} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Close upload dialog"><X className="h-5 w-5" /></button></div>
-      <form onSubmit={onSubmit} className="space-y-4 p-5 sm:p-6">
-        {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{error}</div>}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium text-gray-700">Type *<select required value={form.type} onChange={(event) => onChange("type", event.target.value)} className={selectClass}><option value="PYQ">PYQ</option><option value="Notes">Notes</option></select></label>
-          <label className="text-sm font-medium text-gray-700">Institute *<select required value={form.institutionId} onChange={(event) => onChange("institutionId", event.target.value)} className={selectClass}><option value="">Select institute</option>{institutes.map((item) => <option key={valueOf(item, ["institutionId", "id"])} value={valueOf(item, ["institutionId", "id"])}>{valueOf(item, ["InstitutionName", "institutionName", "name"])}</option>)}</select></label>
-          <label className="text-sm font-medium text-gray-700">Course *<select required value={form.course} onChange={(event) => onChange("course", event.target.value)} className={selectClass}><option value="">Select course</option>{Object.keys(courseDepartments).map((course) => <option key={course} value={course}>{course}</option>)}</select></label>
-          <label className="text-sm font-medium text-gray-700">Department *<select required disabled={!form.course} value={form.department} onChange={(event) => onChange("department", event.target.value)} className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-100`}><option value="">{form.course ? "Select department" : "Select course first"}</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
-          <label className="text-sm font-medium text-gray-700">Semester *<select required value={form.semester} onChange={(event) => onChange("semester", event.target.value)} className={selectClass}><option value="">Select semester</option>{semesters.map((semester) => <option key={semester} value={semester}>{semester}</option>)}</select></label>
-          <label className="text-sm font-medium text-gray-700">Year *<select required value={form.year} onChange={(event) => onChange("year", event.target.value)} className={selectClass}><option value="">Select year</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+  const semesters = [
+    "1st Semester",
+    "2nd Semester",
+    "3rd Semester",
+    "4th Semester",
+    "5th Semester",
+    "6th Semester",
+    "7th Semester",
+    "8th Semester",
+  ];
+  const selectClass =
+    "mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0A80F5] focus:ring-2 focus:ring-blue-100";
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="upload-title"
+    >
+      <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 p-5 sm:p-6">
+          <div>
+            <h3
+              id="upload-title"
+              className="text-lg font-semibold text-gray-800"
+            >
+              Upload PYQ or Notes
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Required fields are marked with an asterisk.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={uploading}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Close upload dialog"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        {form.type === "Notes" && <label className="block text-sm font-medium text-gray-700">Teacher name *<input required value={form.teacherName} onChange={(event) => onChange("teacherName", event.target.value)} className={selectClass} placeholder="Enter teacher name" /></label>}
-        <label className="block text-sm font-medium text-gray-700">Document file *<input required type="file" accept=".pdf,.doc,.docx,image/*" onChange={(event) => onChange("file", event.target.files?.[0] || null)} className="mt-1.5 block w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#0A80F5]" /><span className="mt-1 block text-xs text-gray-500">PDF, DOC, DOCX, or image files accepted by your server.</span></label>
-        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} disabled={uploading} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">Cancel</button><button type="submit" disabled={uploading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A80F5] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0874dd] disabled:cursor-not-allowed disabled:opacity-60"><Upload className="h-4 w-4" />{uploading ? "Uploading..." : "Upload & approve"}</button></div>
-      </form>
+        <form onSubmit={onSubmit} className="space-y-4 p-5 sm:p-6">
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-medium text-gray-700">
+              Type *
+              <select
+                required
+                value={form.type}
+                onChange={(event) => onChange("type", event.target.value)}
+                className={selectClass}
+              >
+                <option value="PYQ">PYQ</option>
+                <option value="Notes">Notes</option>
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Institute *
+              <select
+                required
+                value={form.institutionId}
+                onChange={(event) =>
+                  onChange("institutionId", event.target.value)
+                }
+                className={selectClass}
+              >
+                <option value="">Select institute</option>
+                {institutes.map((item) => (
+                  <option
+                    key={valueOf(item, ["institutionId", "id"])}
+                    value={valueOf(item, ["institutionId", "id"])}
+                  >
+                    {valueOf(item, [
+                      "InstitutionName",
+                      "institutionName",
+                      "name",
+                    ])}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Course *
+              <select
+                required
+                value={form.course}
+                onChange={(event) => onChange("course", event.target.value)}
+                className={selectClass}
+              >
+                <option value="">Select course</option>
+                {Object.keys(courseDepartments).map((course) => (
+                  <option key={course} value={course}>
+                    {course}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Department *
+              <select
+                required
+                disabled={!form.course}
+                value={form.department}
+                onChange={(event) => onChange("department", event.target.value)}
+                className={`${selectClass} disabled:cursor-not-allowed disabled:bg-gray-100`}
+              >
+                <option value="">
+                  {form.course ? "Select department" : "Select course first"}
+                </option>
+                {departments.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Semester *
+              <select
+                required
+                value={form.semester}
+                onChange={(event) => onChange("semester", event.target.value)}
+                className={selectClass}
+              >
+                <option value="">Select semester</option>
+                {semesters.map((semester) => (
+                  <option key={semester} value={semester}>
+                    {semester}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-gray-700">
+              Year *
+              <select
+                required
+                value={form.year}
+                onChange={(event) => onChange("year", event.target.value)}
+                className={selectClass}
+              >
+                <option value="">Select year</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {form.type === "Notes" && (
+            <label className="block text-sm font-medium text-gray-700">
+              Teacher name *
+              <input
+                required
+                value={form.teacherName}
+                onChange={(event) =>
+                  onChange("teacherName", event.target.value)
+                }
+                className={selectClass}
+                placeholder="Enter teacher name"
+              />
+            </label>
+          )}
+          <label className="block text-sm font-medium text-gray-700">
+            Document file *
+            <input
+              required
+              type="file"
+              accept=".pdf,.doc,.docx,image/*"
+              onChange={(event) =>
+                onChange("file", event.target.files?.[0] || null)
+              }
+              className="mt-1.5 block w-full rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#0A80F5]"
+            />
+            <span className="mt-1 block text-xs text-gray-500">
+              PDF, DOC, DOCX, or image files accepted by your server.
+            </span>
+          </label>
+          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={uploading}
+              className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={uploading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#0A80F5] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0874dd] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Upload className="h-4 w-4" />
+              {uploading ? "Uploading..." : "Upload & approve"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>;
+  );
 }
 
-function VerifyDialog({ item, form, verifying, error, onClose, onChange, onSubmit }) {
-  const fileName = valueOf(item, ["fileName", "title", "noteTitle", "name"], "this document");
-  const inputClass = "mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0A80F5] focus:ring-2 focus:ring-blue-100";
-  return <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="verify-title">
-    <div className="w-full rounded-t-2xl bg-white shadow-xl sm:max-w-md sm:rounded-2xl">
-      <div className="flex items-start justify-between border-b border-gray-100 p-5"><div><h3 id="verify-title" className="text-lg font-semibold text-gray-800">Verify document</h3><p className="mt-1 truncate text-sm text-gray-500">{fileName}</p></div><button onClick={onClose} disabled={verifying} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50" aria-label="Close verification dialog"><X className="h-5 w-5" /></button></div>
-      <form onSubmit={onSubmit} className="space-y-4 p-5">
-        {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{error}</div>}
-        <label className="block text-sm font-medium text-gray-700">Reward amount *<input required min="0.01" step="0.01" type="number" value={form.amount} onChange={(event) => onChange("amount", event.target.value)} className={inputClass} placeholder="e.g. 25" /></label>
-        <label className="block text-sm font-medium text-gray-700">Description *<textarea required minLength="1" value={form.description} onChange={(event) => onChange("description", event.target.value)} className={`${inputClass} min-h-24 resize-y`} placeholder="Why is this document being verified?" /></label>
-        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end"><button type="button" onClick={onClose} disabled={verifying} className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">Cancel</button><button type="submit" disabled={verifying} className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">{verifying ? "Verifying..." : "Verify & credit"}</button></div>
-      </form>
+function VerifyDialog({
+  item,
+  form,
+  verifying,
+  error,
+  onClose,
+  onChange,
+  onSubmit,
+}) {
+  const fileName = valueOf(
+    item,
+    ["fileName", "title", "noteTitle", "name"],
+    "this document",
+  );
+  const inputClass =
+    "mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0A80F5] focus:ring-2 focus:ring-blue-100";
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="verify-title"
+    >
+      <div className="w-full rounded-t-2xl bg-white shadow-xl sm:max-w-md sm:rounded-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 p-5">
+          <div>
+            <h3
+              id="verify-title"
+              className="text-lg font-semibold text-gray-800"
+            >
+              Verify document
+            </h3>
+            <p className="mt-1 truncate text-sm text-gray-500">{fileName}</p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={verifying}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Close verification dialog"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="space-y-4 p-5">
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+          <label className="block text-sm font-medium text-gray-700">
+            Reward amount *
+            <input
+              required
+              min="0.01"
+              step="0.01"
+              type="number"
+              value={form.amount}
+              onChange={(event) => onChange("amount", event.target.value)}
+              className={inputClass}
+              placeholder="e.g. 25"
+            />
+          </label>
+          <label className="block text-sm font-medium text-gray-700">
+            Description *
+            <textarea
+              required
+              minLength="1"
+              value={form.description}
+              onChange={(event) => onChange("description", event.target.value)}
+              className={`${inputClass} min-h-24 resize-y`}
+              placeholder="Why is this document being verified?"
+            />
+          </label>
+          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={verifying}
+              className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={verifying}
+              className="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {verifying ? "Verifying..." : "Verify & credit"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>;
+  );
 }
 
-function DocumentRow({ item, onVerify }) {
+function RejectDialog({
+  item,
+  description,
+  rejecting,
+  error,
+  onClose,
+  onChange,
+  onSubmit,
+}) {
+  const fileName = valueOf(
+    item,
+    ["fileName", "title", "noteTitle", "name"],
+    "this document",
+  );
+
+  const inputClass =
+    "mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#0A80F5] focus:ring-2 focus:ring-blue-100";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 sm:items-center sm:justify-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reject-title"
+    >
+      <div className="w-full rounded-t-2xl bg-white shadow-xl sm:max-w-md sm:rounded-2xl">
+        <div className="flex items-start justify-between border-b border-gray-100 p-5">
+          <div className="min-w-0">
+            <h3
+              id="reject-title"
+              className="text-lg font-semibold text-gray-800"
+            >
+              Reject document
+            </h3>
+
+            <p className="mt-1 truncate text-sm text-gray-500">{fileName}</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={rejecting}
+            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Close rejection dialog"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4 p-5">
+          {error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+
+          <label className="block text-sm font-medium text-gray-700">
+            Reason for rejection *
+            <textarea
+              required
+              minLength={1}
+              value={description}
+              onChange={(event) => onChange(event.target.value)}
+              disabled={rejecting}
+              className={`${inputClass} min-h-28 resize-y`}
+              placeholder="Enter the reason for rejecting this document..."
+            />
+          </label>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={rejecting}
+              className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={rejecting || !description.trim()}
+              className="rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {rejecting ? "Rejecting..." : "Reject document"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function DocumentRow({ item, onVerify, onReject }) {
   const title = valueOf(
     item,
     ["fileName", "title", "noteTitle", "name"],
@@ -636,26 +1150,43 @@ function DocumentRow({ item, onVerify }) {
       </td>
       <td className="px-6 py-4 text-right">
         <div className="flex justify-end gap-2">
-        {String(valueOf(item, ["status"], "")).toLowerCase() === "pending" && <button onClick={() => onVerify(item)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Verify</button>}
-        {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-[#0A80F5]"
-          >
-            View <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        ) : (
-          <span className="text-xs text-gray-400">No file link</span>
-        )}
+          {String(valueOf(item, ["status"], "")).toLowerCase() ===
+            "pending" && (
+            <>
+              <button
+                onClick={() => onVerify(item)}
+                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                Verify
+              </button>
+
+              <button
+                onClick={() => onReject(item)}
+                className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+              >
+                Reject
+              </button>
+            </>
+          )}
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-[#0A80F5]"
+            >
+              View <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : (
+            <span className="text-xs text-gray-400">No file link</span>
+          )}
         </div>
       </td>
     </tr>
   );
 }
 
-function DocumentCard({ item, onVerify }) {
+function DocumentCard({ item, onVerify, onReject }) {
   const title = valueOf(
     item,
     ["fileName", "title", "noteTitle", "name"],
@@ -691,7 +1222,25 @@ function DocumentCard({ item, onVerify }) {
           View document <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
-      {String(valueOf(item, ["status"], "")).toLowerCase() === "pending" && <button onClick={() => onVerify(item)} className="mt-3 block rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700">Verify</button>}
+      {String(
+  valueOf(item, ["status"], ""),
+).toLowerCase() === "pending" && (
+  <div className="mt-3 flex gap-2">
+    <button
+      onClick={() => onVerify(item)}
+      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+    >
+      Verify
+    </button>
+
+    <button
+      onClick={() => onReject(item)}
+      className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-700"
+    >
+      Reject
+    </button>
+  </div>
+)}
     </article>
   );
 }
