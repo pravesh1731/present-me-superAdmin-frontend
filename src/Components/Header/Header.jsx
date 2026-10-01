@@ -79,7 +79,7 @@ const Header = () => {
       />
 
       <main
-        className={`flex-1 bg-gray-50 min-h-screen pt-14 md:pt-16 md:static transition-all duration-200 ${
+        className={`flex-1 min-w-0 bg-gray-50 min-h-screen pt-14 md:pt-16 md:static transition-all duration-200 ${
           collapsed ? "md:ml-20" : "md:ml-64"
         }`}
       >
