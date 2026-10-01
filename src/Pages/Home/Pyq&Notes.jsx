@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { loadOverview } from "../../Components/utils/overview";
 import {
   ArrowUpDown,
   CircleAlert,
@@ -204,10 +207,20 @@ function StatusBadge({ status }) {
 }
 
 function PyqAndNotes() {
-  const [type, setType] = useState("PYQ");
-  const [status, setStatus] = useState("all");
+  const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  // deep links from the dashboard: /superadmin/pyq-notes?type=Notes&status=pending
+  const [type, setType] = useState(
+    ["PYQ", "Notes"].includes(searchParams.get("type")) ? searchParams.get("type") : "PYQ"
+  );
+  const [status, setStatus] = useState(
+    ["pending", "approved", "rejected"].includes(searchParams.get("status"))
+      ? searchParams.get("status")
+      : "all"
+  );
   const [filters, setFilters] = useState({
-    institutionId: "",
+    // deep link from an institute page: /superadmin/pyq-notes?institutionId=...
+    institutionId: searchParams.get("institutionId") || "",
     year: "",
     course: "",
     department: "",
@@ -492,6 +505,7 @@ function PyqAndNotes() {
       });
       setUploadOpen(false);
       notify("File uploaded and approved");
+      loadOverview(dispatch, { force: true });
       setStatus("approved");
       setType(uploadForm.type);
       setFilters({ institutionId: "", year: "", course: "", department: "" });
@@ -533,6 +547,7 @@ function PyqAndNotes() {
       setVerifyingItem(null);
       setSelectedItem(null);
       notify(`Verified — ${formatMoney(verifyForm.amount)} credited to the uploader`);
+      loadOverview(dispatch, { force: true });
       await loadNotes(cursorHistory.at(-1) || null);
     } catch (requestError) {
       setVerifyError(
@@ -589,6 +604,7 @@ function PyqAndNotes() {
       setRejectingItem(null);
       setSelectedItem(null);
       notify("Document rejected");
+      loadOverview(dispatch, { force: true });
 
       // Refresh current page
       await loadNotes(cursorHistory.at(-1) || null);

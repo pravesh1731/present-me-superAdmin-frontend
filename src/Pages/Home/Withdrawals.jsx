@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { loadOverview } from "../../Components/utils/overview";
 import {
   ArrowUpDown,
   Banknote,
@@ -203,7 +206,14 @@ function FilterField({ label, children }) {
 }
 
 function Withdrawals() {
-  const [filters, setFilters] = useState(emptyFilters);
+  const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  // deep links: /superadmin/withdrawals?status=PENDING&institutionId=...
+  const [filters, setFilters] = useState({
+    ...emptyFilters,
+    status: statuses.includes(searchParams.get("status")) ? searchParams.get("status") : "all",
+    institutionId: searchParams.get("institutionId") || "",
+  });
   const [searchInput, setSearchInput] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
@@ -522,6 +532,7 @@ function Withdrawals() {
         setStatusForm(emptyStatusForm);
         setDetailItem(null);
         notify(`${amount} withdrawal marked as ${label}`);
+        loadOverview(dispatch, { force: true });
 
         await loadWithdrawals(currentCursor());
       }
